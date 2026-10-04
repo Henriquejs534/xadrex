@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Xadrez - 2 Jogadores</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial,sans-serif;
+  background:#15171c;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.app{
+  width:100%;
+  max-width:620px;
+  min-height:100vh;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+header{
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+h1{
+  margin:0;
+  font-size:25px;
+}
+
+.iconBtn{
+  border:0;
+  background:#272b33;
+  color:white;
+  border-radius:12px;
+  padding:10px 13px;
+  font-size:20px;
+}
+
+.player{
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#22252c;
+  border-radius:13px;
+  padding:9px 13px;
+  margin:4px 0;
+}
+
+.player.active{
+  outline:2px solid #55a7ff;
+}
+
+.playerName{
+  font-weight:bold;
+}
+
+.clock{
+  font-family:monospace;
+  font-size:21px;
+  font-weight:bold;
+}
+
+#status{
+  margin:7px 0;
+  font-weight:bold;
+  text-align:center;
+  min-height:22px;
+}
+
+.board{
+  width:min(94vw,560px);
+  height:min(94vw,560px);
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  grid-template-rows:repeat(8,1fr);
+  border:5px solid #343942;
+  border-radius:5px;
+  overflow:hidden;
+  touch-action:none;
+  box-shadow:0 10px 30px #0008;
+}
+
+.square{
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  user-select:none;
+}
+
+.light{
+  background:#f0d9b5;
+}
+
+.dark{
+  background:#b58863;
+}
+
+.selected{
+  box-shadow:inset 0 0 0 5px #48a9ff;
+}
+
+.legal::after{
+  content:"";
+  width:24%;
+  height:24%;
+  border-radius:50%;
+  background:#2e8b57aa;
+  position:absolute;
+}
+
+.capture::after{
+  content:"";
+  position:absolute;
+  inset:5px;
+  border:4px solid #e04b4b99;
+  border-radius:50%;
+}
+
+.last{
+  background:#d6b84c !important;
+}
+
+.check{
+  background:#e05252 !important;
+}
+
+.piece{
+  position:relative;
+  z-index:2;
+  font-size:clamp(35px,10vw,66px);
+  line-height:1;
+  font-family:"Times New Roman",serif;
+  filter:drop-shadow(1px 2px 1px #0008);
+}
+
+.whitePiece{
+  color:#fff;
+  text-shadow:
+    0 1px 0 #222,
+    1px 0 0 #222,
+    -1px 0 0 #222,
+    0 -1px 0 #222;
+}
+
+.blackPiece{
+  color:#111;
+  text-shadow:0 1px 2px #fff8;
+}
+
+.controls{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+  margin-top:10px;
+}
+
+.controls button,
+.modal button{
+  border:0;
+  border-radius:11px;
+  padding:12px 8px;
+  background:#292d35;
+  color:white;
+  font-weight:bold;
+  font-size:14px;
+}
+
+.controls button:active,
+.modal button:active,
+.iconBtn:active{
+  transform:scale(.97);
+}
+
+.modalBg{
+  position:fixed;
+  inset:0;
+  background:#0009;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  z-index:10;
+}
+
+.modal{
+  width:min(420px,100%);
+  background:#20232a;
+  border-radius:18px;
+  padding:20px;
+  box-shadow:0 15px 50px #000;
+}
+
+.modal h2{
+  margin-top:0;
+}
+
+.setting{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 0;
+  border-bottom:1px solid #ffffff18;
+}
+
+select,input{
+  background:#30343d;
+  color:white;
+  border:1px solid #555;
+  border-radius:8px;
+  padding:8px;
+}
+
+#promotion{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#000b;
+  z-index:20;
+  justify-content:center;
+  align-items:center;
+}
+
+.promoBox{
+  background:#242832;
+  padding:20px;
+  border-radius:18px;
+  text-align:center;
+}
+
+.promoChoices{
+  display:flex;
+  gap:10px;
+  margin-top:15px;
+}
+
+.promoChoices button{
+  font-size:40px;
+  width:65px;
+  height:65px;
+  border:0;
+  border-radius:12px;
+  background:#ddd;
+}
+
+.lightTheme{
+  background:#e9edf3;
+  color:#111;
+}
+
+.lightTheme .player,
+.lightTheme .modal,
+.lightTheme .controls button,
+.lightTheme .iconBtn{
+  background:#fff;
+  color:#111;
+}
+
+@media(max-height:650px){
+  .app{
+    padding:6px;
+  }
+
+  h1{
+    font-size:20px;
+  }
+
+  .player{
+    padding:5px 10px;
+  }
+
+  .controls{
+    margin-top:5px;
+  }
+
+  .controls button{
+    padding:8px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+  <h1>♟️ Xadrez</h1>
+  <button class="iconBtn" onclick="openSettings()">⚙️</button>
+</header>
+
+<div class="player" id="blackPlayer">
+  <span class="playerName">♟ Pretas</span>
+  <span class="clock" id="blackClock">10:00</span>
+</div>
+
+<div id="status">Vez das brancas</div>
+
+<div class="board" id="board"></div>
+
+<div class="player" id="whitePlayer">
+  <span class="playerName">♙ Brancas</span>
+  <span class="clock" id="whiteClock">10:00</span>
+</div>
+
+<div class="controls">
+  <button onclick="newGame()">🔄 Novo jogo</button>
+  <button onclick="undoMove()">↩️ Desfazer</button>
+  <button onclick="flipBoard()">🔃 Virar</button>
+  <button onclick="toggleSound()">🔊 Som</button>
+  <button onclick="openSettings()">⚙️ Config.</button>
+  <button onclick="showHelp()">❓ Ajuda</button>
+</div>
+
+</div>
+
+<!-- CONFIGURAÇÕES -->
+<div class="modalBg" id="settings">
+  <div class="modal">
+    <h2>⚙️ Configurações</h2>
+
+    <div class="setting">
+      <span>Tempo</span>
+      <select id="timeSelect" onchange="changeTime()">
+        <option value="0">Sem relógio</option>
+        <option value="1">1 minuto</option>
+        <option value="3">3 minutos</option>
+        <option value="5">5 minutos</option>
+        <option value="10" selected>10 minutos</option>
+        <option value="15">15 minutos</option>
+      </select>
+    </div>
+
+    <div class="setting">
+      <span>Som</span>
+      <input type="checkbox" id="soundCheck" checked
+             onchange="soundEnabled=this.checked">
+    </div>
+
+    <div class="setting">
+      <span>Tema</span>
+      <select onchange="changeTheme(this.value)">
+        <option value="dark">Escuro</option>
+        <option value="light">Claro</option>
+      </select>
+    </div>
+
+    <div class="setting">
+      <span>Virar após cada jogada</span>
+      <input type="checkbox" id="autoFlip">
+    </div>
+
+    <br>
+    <button onclick="closeSettings()">Fechar</button>
+  </div>
+</div>
+
+<!-- PROMOÇÃO -->
+<div id="promotion">
+  <div class="promoBox">
+    <h2>Escolha a peça</h2>
+    <div class="promoChoices">
+      <button onclick="promote('q')">♛</button>
+      <button onclick="promote('r')">♜</button>
+      <button onclick="promote('b')">♝</button>
+      <button onclick="promote('n')">♞</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const pieces = {
+  w:{
+    k:"♔",q:"♕",r:"♖",b:"♗",n:"♘",p:"♙"
+  },
+  b:{
+    k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"
+  }
+};
+
+let board = [];
+let turn = "w";
+let selected = null;
+let legalMoves = [];
+let history = [];
+let flipped = false;
+let soundEnabled = true;
+let pendingPromotion = null;
+let gameOver = false;
+
+let minutes = 10;
+let clocks = {
+  w:600,
+  b:600
+};
+
+let timer = null;
+
+function initialBoard(){
+  return [
+    [
+      {c:"b",p:"r"},{c:"b",p:"n"},{c:"b",p:"b"},{c:"b",p:"q"},
+      {c:"b",p:"k"},{c:"b",p:"b"},{c:"b",p:"n"},{c:"b",p:"r"}
+    ],
+    Array(8).fill(null).map(()=>({c:"b",p:"p"})),
+    Array(8).fill(null),
+    Array(8).fill(null),
+    Array(8).fill(null),
+    Array(8).fill(null),
+    Array(8).fill(null).map(()=>({c:"w",p:"p"})),
+    [
+      {c:"w",p:"r"},{c:"w",p:"n"},{c:"w",p:"b"},{c:"w",p:"q"},
+      {c:"w",p:"k"},{c:"w",p:"b"},{c:"w",p:"n"},{c:"w",p:"r"}
+    ]
+  ];
+}
+
+function cloneBoard(b){
+  return b.map(row =>
+    row.map(x => x ? {...x} : null)
+  );
+}
+
+function newGame(){
+  board = initialBoard();
+  turn = "w";
+  selected = null;
+  legalMoves = [];
+  history = [];
+  gameOver = false;
+  minutes = Number(document.getElementById("timeSelect").value);
+
+  clocks.w = minutes * 60;
+  clocks.b = minutes * 60;
+
+  clearInterval(timer);
+
+  if(minutes > 0){
+    timer = setInterval(tick,1000);
+  }
+
+  render();
+}
+
+function tick(){
+  if(gameOver || minutes === 0) return;
+
+  clocks[turn]--;
+
+  if(clocks[turn] <= 0){
+    clocks[turn] = 0;
+    gameOver = true;
+
+    const winner = turn === "w" ? "Pretas" : "Brancas";
+
+    document.getElementById("status").textContent =
+      `⏰ Tempo esgotado! ${winner} venceu.`;
+
+    clearInterval(timer);
+  }
+
+  updateClocks();
+}
+
+function updateClocks(){
+  document.getElementById("whiteClock").textContent =
+    formatTime(clocks.w);
+
+  document.getElementById("blackClock").textContent =
+    formatTime(clocks.b);
+}
+
+function formatTime(sec){
+  let m = Math.floor(sec/60);
+  let s = sec%60;
+
+  return String(m).padStart(2,"0") + ":" +
+         String(s).padStart(2,"0");
+}
+
+function render(){
+  const el = document.getElementById("board");
+  el.innerHTML = "";
+
+  for(let visualR=0;visualR<8;visualR++){
+    for(let visualC=0;visualC<8;visualC++){
+
+      let r = flipped ? 7-visualR : visualR;
+      let c = flipped ? 7-visualC : visualC;
+
+      const sq = document.createElement("div");
+
+      sq.className =
+        "square " +
+        ((r+c)%2===0 ? "light":"dark");
+
+      if(selected &&
+         selected.r===r &&
+         selected.c===c){
+        sq.classList.add("selected");
+      }
+
+      if(legalMoves.some(m=>m.r===r && m.c===c)){
+        if(board[r][c]){
+          sq.classList.add("capture");
+        }else{
+          sq.classList.add("legal");
+        }
+      }
+
+      if(board[r][c]){
+        const piece = document.createElement("span");
+
+        piece.className =
+          "piece " +
+          (board[r][c].c==="w" ?
+           "whitePiece":"blackPiece");
+
+        piece.textContent =
+          pieces[board[r][c].c][board[r][c].p];
+
+        sq.appendChild(piece);
+      }
+
+      sq.addEventListener("click",()=>clickSquare(r,c));
+
+      el.appendChild(sq);
+    }
+  }
+
+  updateStatus();
+  updateClocks();
+}
+
+function clickSquare(r,c){
+
+  if(gameOver) return;
+
+  const piece = board[r][c];
+
+  if(selected){
+
+    const move = legalMoves.find(
+      m=>m.r===r && m.c===c
+    );
+
+    if(move){
+      makeMove(selected.r,selected.c,r,c);
+      return;
+    }
+
+    if(piece && piece.c===turn){
+      selectPiece(r,c);
+      return;
+    }
+
+    selected=null;
+    legalMoves=[];
+    render();
+    return;
+  }
+
+  if(piece && piece.c===turn){
+    selectPiece(r,c);
+  }
+}
+
+function selectPiece(r,c){
+  selected={r,c};
+  legalMoves=getLegalMoves(r,c);
+  render();
+}
+
+function getPseudoMoves(r,c){
+  const piece=board[r][c];
+  if(!piece) return [];
+
+  let moves=[];
+
+  const add=(rr,cc)=>{
+    if(rr<0||rr>7||cc<0||cc>7)return false;
+
+    if(!board[rr][cc]){
+      moves.push({r:rr,c:cc});
+      return true;
+    }
+
+    if(board[rr][cc].c!==piece.c){
+      moves.push({r:rr,c:cc});
+    }
+
+    return false;
+  };
+
+  if(piece.p==="p"){
+
+    const dir=piece.c==="w" ? -1 : 1;
+    const start=piece.c==="w" ? 6 : 1;
+
+    if(r+dir>=0&&r+dir<=7&&!board[r+dir][c]){
+      moves.push({r:r+dir,c});
+
+      if(r===start&&!board[r+2*dir][c]){
+        moves.push({r:r+2*dir,c});
+      }
+    }
+
+    for(const dc of [-1,1]){
+      const rr=r+dir;
+      const cc=c+dc;
+
+      if(rr>=0&&rr<=7&&cc>=0&&cc<=7&&
+         board[rr][cc]&&
+         board[rr][cc].c!==piece.c){
+        moves.push({r:rr,c:cc});
+      }
+    }
+  }
+
+  if(piece.p==="n"){
+    const jumps=[
+      [-2,-1],[-2,1],[-1,-2],[-1,2],
+      [1,-2],[1,2],[2,-1],[2,1]
+    ];
+
+    jumps.forEach(([dr,dc])=>add(r+dr,c+dc));
+  }
+
+  if(piece.p==="k"){
+    for(let dr=-1;dr<=1;dr++){
+      for(let dc=-1;dc<=1;dc++){
+        if(dr||dc)add(r+dr,c+dc);
+      }
+    }
+  }
+
+  if(["r","q"].includes(piece.p)){
+    for(const [dr,dc] of [
+      [-1,0],[1,0],[0,-1],[0,1]
+    ]){
+      let rr=r+dr,cc=c+dc;
+
+      while(add(rr,cc)){
+        rr+=dr;
+        cc+=dc;
+      }
+    }
+  }
+
+  if(["b","q"].includes(piece.p)){
+    for(const [dr,dc] of [
+      [-1,-1],[-1,1],[1,-1],[1,1]
+    ]){
+      let rr=r+dr,cc=c+dc;
+
+      while(add(rr,cc)){
+        rr+=dr;
+        cc+=dc;
+      }
+    }
+  }
+
+  return moves;
+}
+
+function getLegalMoves(r,c){
+  const piece=board[r][c];
+  if(!piece)return [];
+
+  const pseudo=getPseudoMoves(r,c);
+  const result=[];
+
+  for(const m of pseudo){
+
+    const copy=cloneBoard(board);
+    copy[m.r][m.c]=copy[r][c];
+    copy[r][c]=null;
+
+    if(!isInCheck(copy,piece.c)){
+      result.push(m);
+    }
+  }
+
+  return result;
+}
+
+function findKing(b,color){
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(b[r][c]&&
+         b[r][c].c===color&&
+         b[r][c].p==="k"){
+        return {r,c};
+      }
+    }
+  }
+
+  return null;
+}
+
+function isInCheck(b,color){
+  const king=findKing(b,color);
+  if(!king)return true;
+
+  const enemy=color==="w"?"b":"w";
+
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+
+      const p=b[r][c];
+
+      if(!p||p.c!==enemy)continue;
+
+      const attacks=getAttacks(b,r,c);
+
+      if(attacks.some(x=>
+        x.r===king.r && x.c===king.c
+      )){
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function getAttacks(b,r,c){
+  const old=board;
+  board=b;
+
+  const moves=getPseudoMoves(r,c);
+
+  board=old;
+
+  return moves;
+}
+
+function makeMove(fr,fc,tr,tc){
+
+  history.push({
+    board:cloneBoard(board),
+    turn:turn,
+    clocks:{...clocks}
+  });
+
+  const piece=board[fr][fc];
+
+  board[tr][tc]=piece;
+  board[fr][fc]=null;
+
+  selected=null;
+  legalMoves=[];
+
+  playSound();
+
+  if(piece.p==="p" && (tr===0||tr===7)){
+    pendingPromotion={r:tr,c:tc};
+    document.getElementById("promotion").style.display="flex";
+    return;
+  }
+
+  finishMove();
+}
+
+function finishMove(){
+
+  turn=turn==="w"?"b":"w";
+
+  if(document.getElementById("autoFlip").checked){
+    flipped=!flipped;
+  }
+
+  checkGameState();
+  render();
+}
+
+function promote(type){
+
+  if(!pendingPromotion)return;
+
+  board[pendingPromotion.r][pendingPromotion.c].p=type;
+
+  pendingPromotion=null;
+
+  document.getElementById("promotion").style.display="none";
+
+  finishMove();
+}
+
+function hasAnyLegalMove(color){
+
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+
+      if(board[r][c]&&board[r][c].c===color){
+
+        if(getLegalMoves(r,c).length>0){
+          return true;
+        }
+
+      }
+    }
+  }
+
+  return false;
+}
+
+function checkGameState(){
+
+  const check=isInCheck(board,turn);
+  const moves=hasAnyLegalMove(turn);
+
+  if(!moves){
+
+    gameOver=true;
+    clearInterval(timer);
+
+    if(check){
+      const winner=turn==="w"?"Pretas":"Brancas";
+      document.getElementById("status").textContent=
+        `♚ XEQUE-MATE! ${winner} venceu!`;
+    }else{
+      document.getElementById("status").textContent=
+        "🤝 EMPATE! Afogamento.";
+    }
+
+    return;
+  }
+
+  if(check){
+    document.getElementById("status").textContent=
+      `⚠️ XEQUE! Vez das ${turn==="w"?"brancas":"pretas"}.`;
+  }
+}
+
+function updateStatus(){
+
+  if(gameOver)return;
+
+  document.getElementById("status").textContent=
+    `Vez das ${turn==="w"?"brancas":"pretas"}`;
+
+  document.getElementById("whitePlayer")
+    .classList.toggle("active",turn==="w");
+
+  document.getElementById("blackPlayer")
+    .classList.toggle("active",turn==="b");
+}
+
+function undoMove(){
+
+  if(!history.length||gameOver)return;
+
+  const last=history.pop();
+
+  board=last.board;
+  turn=last.turn;
+  clocks=last.clocks;
+
+  selected=null;
+  legalMoves=[];
+
+  render();
+}
+
+function flipBoard(){
+  flipped=!flipped;
+  render();
+}
+
+function toggleSound(){
+
+  soundEnabled=!soundEnabled;
+
+  document.querySelector(
+    'button[onclick="toggleSound()"]'
+  ).textContent=
+    soundEnabled?"🔊 Som":"🔇 Som";
+}
+
+function playSound(){
+
+  if(!soundEnabled)return;
+
+  try{
+    const audioCtx =
+      new (window.AudioContext||window.webkitAudioContext)();
+
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+
+    osc.frequency.value=500;
+    gain.gain.value=.04;
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime+.08);
+  }catch(e){}
+}
+
+function openSettings(){
+  document.getElementById("settings").style.display="flex";
+}
+
+function closeSettings(){
+  document.getElementById("settings").style.display="none";
+}
+
+function changeTime(){
+
+  const value=
+    Number(document.getElementById("timeSelect").value);
+
+  minutes=value;
+
+  clocks.w=value*60;
+  clocks.b=value*60;
+
+  if(value===0){
+    clearInterval(timer);
+  }else{
+    clearInterval(timer);
+    timer=setInterval(tick,1000);
+  }
+
+  updateClocks();
+}
+
+function changeTheme(theme){
+
+  if(theme==="light"){
+    document.body.classList.add("lightTheme");
+  }else{
+    document.body.classList.remove("lightTheme");
+  }
+}
+
+function showHelp(){
+
+  alert(
+`COMO JOGAR
+
+♟️ Toque em uma peça para selecioná-la.
+
+🟢 Os círculos mostram os movimentos possíveis.
+
+🔴 A marcação mostra uma captura.
+
+👥 Jogador 1 = Brancas.
+👥 Jogador 2 = Pretas.
+
+⚙️ Nas configurações você pode:
+• escolher o tempo;
+• ligar/desligar o som;
+• mudar o tema;
+• virar automaticamente o tabuleiro.
+
+↩️ Desfazer volta uma jogada.
+
+🔃 Virar troca a posição do tabuleiro.`
+  );
+}
+
+newGame();
+</script>
+
+</body>
+</html>
